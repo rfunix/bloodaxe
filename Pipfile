@@ -1,0 +1,24 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+black = "==18.9b0"
+ipython = "*"
+ipdb = "*"
+pytest-cov = "*"
+pytest-deadfixtures = "*"
+pytest-randomly = "*"
+coverage = "*"
+pytest-sugar = "*"
+pre-commit = "*"
+
+[packages]
+toml = "*"
+click = "*"
+httpx = "*"
+
+[requires]
+python_version = "3.8"
