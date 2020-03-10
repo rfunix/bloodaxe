@@ -1,5 +1,5 @@
 [configs]
-number_of_process = 2
+number_of_process = 1
 duration = 2
 
 [[requests]]
@@ -11,5 +11,5 @@ save_result = true
 [[requests]]
 name = "post_request"
 url = "http://localhost:8080/post"
-data = '{"name": "{get_request.name}"}'
+data = '{"name": "{{ get_request.name }}"}'
 method = "POST"

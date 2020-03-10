@@ -3,7 +3,9 @@ import time
 from multiprocessing import Pool
 
 import click
+import httpx
 import toml
+from jinja2 import Template
 
 HTTP_METHODS_FUNC_MAPPING = {"GET": "make_get_request", "POST": "make_post_request"}
 
@@ -14,24 +16,23 @@ def bloodaxe(config_file):
     try:
         toml_data = toml.load(config_file)
     except (TypeError, toml.TomlDecodeError):
-        click.echo("Invalid toml file")
+        click.echo("invalid toml file")
 
     running(toml_data)
 
 
 async def make_get_request(url, *args, **kwargs):
-    print("Call get")
-    print(args)
-    print(kwargs)
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get("https://www.example.com/")
+            r.raise_for_status()
+    except httpx.exceptions.HttpError as exc:
+        return {f"error": f"error when make get request, url={url}, exception={exc}"}
 
-    return "GET"
+    return r.json()
 
 
 async def make_post_request(url, data, *args, **kwargs):
-    print("Call post")
-    print(args)
-    print(kwargs)
-
     return "POST"
 
 
@@ -45,11 +46,12 @@ async def make_request(url, method, *args, **kwargs):
 
 
 def make_data(context, data):
-    return data
+    template = Template(data)
+    return template.render(**context)
 
 
 async def flow(toml_data):
-    context = []
+    context = {}
     start_flow_time = time.time()
 
     for request in toml_data["requests"]:
@@ -59,7 +61,7 @@ async def flow(toml_data):
         result = await make_request(**request)
 
         if request.get("save_result"):
-            context.append({request["name"]: result})
+            context[request["name"]] = result
 
     flow_duration = time.time() - start_flow_time
 

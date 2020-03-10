@@ -19,6 +19,7 @@ pre-commit = "*"
 toml = "*"
 click = "*"
 httpx = "*"
+jinja2 = "*"
 
 [requires]
 python_version = "3.8"
