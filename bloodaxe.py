@@ -126,20 +126,14 @@ def execute_flow(toml_data):
     return result
 
 
-def generate_mean_time(flows):
-    total_time = sum([flow.duration for flow in flows])
-
-    return total_time / len(flows)
-
-
 def show_metrics(flows, total_time):
     success_flows = [flow for flow in flows if flow.success]
     error_flows = [flow for flow in flows if flow.error]
 
-    mean_time = generate_mean_time(success_flows)
+    mean_time = statistics.mean([flow.duration for flow in success_flows])
     standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
 
-    seconds_mask = "{0:.2f} seconds"
+    seconds_mask = "{0:.2f}"
 
     row = [
         len(success_flows),
@@ -162,7 +156,6 @@ def start(toml_data):
     typer.secho(
         START_MESSAGE.format(number_of_process, duration), fg=typer.colors.CYAN, underline=True, bold=True
     )
-    typer.echo("\n")
 
     start_time = time.time()
     while True:
