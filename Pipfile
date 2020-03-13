@@ -17,9 +17,9 @@ pre-commit = "*"
 
 [packages]
 toml = "*"
-click = "*"
 httpx = "*"
 jinja2 = "*"
+typer = {extras = ["all"],version = "*"}
 
 [requires]
 python_version = "3.8"
