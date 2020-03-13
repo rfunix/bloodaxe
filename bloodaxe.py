@@ -3,7 +3,6 @@ import json
 import statistics
 import time
 from dataclasses import dataclass
-from multiprocessing import Pool
 from pathlib import Path
 
 import httpx
@@ -120,17 +119,15 @@ async def flow(toml_data):
     return current_flow
 
 
-def execute_flow(toml_data):
-    result = asyncio.run(flow(toml_data))
-    return result
-
-
 def show_metrics(flows, total_time):
     success_flows = [flow for flow in flows if flow.success]
     error_flows = [flow for flow in flows if flow.error]
+    mean_time = 0
+    total_time = 0
 
-    mean_time = statistics.mean([flow.duration for flow in success_flows])
-    standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
+    if success_flows:
+        mean_time = statistics.mean([flow.duration for flow in success_flows])
+        standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
 
     seconds_mask = "{0:.2f}"
 
@@ -147,7 +144,7 @@ def show_metrics(flows, total_time):
     typer.echo(tabulate([row], headers=TABLE_HEADERS))
 
 
-def start(toml_data):
+async def start(toml_data):
     flows = tuple()
     duration = toml_data["configs"]["duration"]
     number_of_process = toml_data["configs"]["number_of_process"]
@@ -163,8 +160,9 @@ def start(toml_data):
         if elapsed_seconds >= duration:
             break
 
-        with Pool(processes=number_of_process) as p:
-            flows += tuple(p.map(execute_flow, [toml_data for _ in range(number_of_process)]))
+        result = await asyncio.gather(*[flow(toml_data) for _ in range(number_of_process)])
+
+        flows += tuple(result)
 
     show_metrics(flows, elapsed_seconds)
 
@@ -175,7 +173,7 @@ def bloodaxe(config_file: Path):
     except (TypeError, toml.TomlDecodeError):
         typer.echo("Invalid toml file")
 
-    start(toml_data)
+    asyncio.run(start(toml_data))
 
 
 if __name__ == "__main__":
