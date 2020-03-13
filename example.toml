@@ -1,5 +1,5 @@
 [configs]
-number_of_process = 20
+number_of_process = 30
 duration = 60
 
 [[api]]

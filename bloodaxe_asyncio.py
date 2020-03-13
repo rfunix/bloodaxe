@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 import toml
 import typer
-from httpx._exceptions import NetworkError
+from httpx._exceptions import NetworkError, ReadTimeout
 from httpx.exceptions import HTTPError
 from jinja2 import Template
 from tabulate import tabulate
@@ -60,7 +60,7 @@ async def make_get_request(url, *args, **kwargs):
         async with httpx.AsyncClient() as client:
             r = await client.get(url)
             r.raise_for_status()
-    except (HTTPError, NetworkError) as exc:
+    except (HTTPError, NetworkError, ReadTimeout) as exc:
         raise FlowError(f"An error occurred when make_get_request, exc={exc}")
 
     return r.json()
@@ -71,7 +71,7 @@ async def make_post_request(url, data, *args, **kwargs):
         async with httpx.AsyncClient() as client:
             r = await client.post(url, data=json.loads(data))
             r.raise_for_status()
-    except (HTTPError, NetworkError) as exc:
+    except (HTTPError, NetworkError, ReadTimeout) as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
 
     return r.json()
