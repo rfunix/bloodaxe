@@ -20,6 +20,7 @@ toml = "*"
 httpx = "*"
 jinja2 = "*"
 typer = {extras = ["all"],version = "*"}
+tabulate = "*"
 
 [requires]
 python_version = "3.8"
