@@ -1,14 +1,14 @@
 [configs]
-number_of_process = 10
-duration = 10
+number_of_concurrent_flows = 10
+duration = 60
 
 [[api]]
 name = "user_api"
-base_url = "http://192.168.1.102:8080"
+base_url = "http://192.168.1.105:8080"
 
 [[api]]
 name = "any_api"
-base_url = "http://192.168.1.102:1010"
+base_url = "http://192.168.1.105:1010"
 
 [[request]]
 name = "get_user"

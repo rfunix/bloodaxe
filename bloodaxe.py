@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 import toml
 import typer
-from httpx._exceptions import NetworkError, ReadTimeout
+from httpx._exceptions import ConnectTimeout, NetworkError, ReadTimeout
 from httpx.exceptions import HTTPError
 from jinja2 import Template
 from tabulate import tabulate
@@ -18,7 +18,7 @@ SUCCESS = typer.style("success", fg=typer.colors.GREEN, bold=True)
 ERROR = typer.style("error", fg=typer.colors.RED, bold=True)
 
 REQUEST_MESSAGE = "Request {}, name={}, url={}"
-START_MESSAGE = "Start bloodaxe, number_of_process={}, duration={} seconds"
+START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
 
 TABLE_HEADERS = [
     "Total success flows",
@@ -28,6 +28,8 @@ TABLE_HEADERS = [
     "Standard deviation",
     "Total time",
 ]
+
+HTTP_EXCEPTIONS = (HTTPError, NetworkError, ReadTimeout, ConnectTimeout)
 
 
 class FlowError(Exception):
@@ -60,7 +62,7 @@ async def make_get_request(url, *args, **kwargs):
         async with httpx.AsyncClient() as client:
             r = await client.get(url)
             r.raise_for_status()
-    except (HTTPError, NetworkError, ReadTimeout) as exc:
+    except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_get_request, exc={exc}")
 
     return r.json()
@@ -71,7 +73,7 @@ async def make_post_request(url, data, *args, **kwargs):
         async with httpx.AsyncClient() as client:
             r = await client.post(url, data=json.loads(data))
             r.raise_for_status()
-    except (HTTPError, NetworkError, ReadTimeout) as exc:
+    except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
 
     return r.json()
@@ -101,8 +103,10 @@ async def flow(toml_data):
 
     for request in toml_data["request"]:
         request["url"] = replace_with_template(context, request["url"])
+
         if request.get("data"):
             request["data"] = replace_with_template(context, request["data"])
+
         try:
             result = await make_request(**request)
             show_request_message(SUCCESS, request["name"], request["url"])
@@ -116,20 +120,20 @@ async def flow(toml_data):
             context[request["name"]] = result
 
     current_flow.duration = time.time() - start_flow_time
+
     return current_flow
 
 
 def show_metrics(flows, total_time):
     success_flows = [flow for flow in flows if flow.success]
     error_flows = [flow for flow in flows if flow.error]
+    seconds_mask = "{0:.2f}"
     mean_time = 0
-    total_time = 0
+    standard_deviation = 0
 
     if success_flows:
         mean_time = statistics.mean([flow.duration for flow in success_flows])
         standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
-
-    seconds_mask = "{0:.2f}"
 
     row = [
         len(success_flows),
@@ -147,10 +151,13 @@ def show_metrics(flows, total_time):
 async def start(toml_data):
     flows = tuple()
     duration = toml_data["configs"]["duration"]
-    number_of_process = toml_data["configs"]["number_of_process"]
+    number_of_concurrent_flows = toml_data["configs"]["number_of_concurrent_flows"]
 
     typer.secho(
-        START_MESSAGE.format(number_of_process, duration), fg=typer.colors.CYAN, underline=True, bold=True
+        START_MESSAGE.format(number_of_concurrent_flows, duration),
+        fg=typer.colors.CYAN,
+        underline=True,
+        bold=True,
     )
 
     start_time = time.time()
@@ -160,9 +167,9 @@ async def start(toml_data):
         if elapsed_seconds >= duration:
             break
 
-        result = await asyncio.gather(*[flow(toml_data) for _ in range(number_of_process)])
+        results = await asyncio.gather(*[flow(toml_data) for _ in range(number_of_concurrent_flows)])
 
-        flows += tuple(result)
+        flows += tuple(results)
 
     show_metrics(flows, elapsed_seconds)
 

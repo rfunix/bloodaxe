@@ -4,16 +4,20 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-pytest = "*"
+pytest = "==5.3.5"
 black = "==18.9b0"
 ipython = "*"
 ipdb = "*"
 pytest-cov = "*"
-pytest-deadfixtures = "*"
 pytest-randomly = "*"
 coverage = "*"
-pytest-sugar = "*"
 pre-commit = "*"
+pytest-mock = "*"
+pytest-deadfixtures = "*"
+pytest-sugar = "*"
+pytest-httpserver = "*"
+pytest-asyncio = "*"
+asynctest = "*"
 
 [packages]
 toml = "*"
