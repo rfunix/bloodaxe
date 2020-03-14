@@ -6,6 +6,7 @@ from bloodaxe import (
     REQUEST_MESSAGE,
     FlowError,
     make_get_request,
+    make_post_request,
     replace_with_template,
     show_request_message,
 )
@@ -27,13 +28,13 @@ def flow_url():
 
 
 @pytest.fixture
-def request_get_response():
+def response():
     return {"name": "Ragnar", "age": 33}
 
 
 @pytest.fixture
-def context(flow_name, request_get_response):
-    return {f"{flow_name}": request_get_response}
+def context(flow_name, response):
+    return {f"{flow_name}": response}
 
 
 @pytest.fixture
@@ -58,12 +59,12 @@ def test_replace_with_template_with_str_data(context):
 
 
 @pytest.mark.asyncio
-async def test_make_get_request(httpserver, request_get_response):
-    httpserver.expect_request("/teste/").respond_with_json(request_get_response)
+async def test_make_get_request(httpserver, response):
+    httpserver.expect_request("/teste/").respond_with_json(response)
 
-    response = await make_get_request(httpserver.url_for("/teste/"))
+    request_response = await make_get_request(httpserver.url_for("/teste/"))
 
-    assert response == request_get_response
+    assert request_response == response
 
 
 @pytest.mark.asyncio
@@ -76,3 +77,28 @@ async def test_make_get_request_raise_flow_error(mocked_httpx_client, flow_url, 
 
     with pytest.raises(FlowError):
         await make_get_request(flow_url)
+
+    mocked_httpx_client.return_value.__aenter__.return_value.get.assert_called_with(flow_url)
+
+
+@pytest.mark.asyncio
+async def test_make_post_request(httpserver, response):
+    httpserver.expect_request("/test/").respond_with_json(response)
+
+    request_response = await make_post_request(httpserver.url_for("/test/"), data={})
+
+    assert request_response == response
+
+
+@pytest.mark.asyncio
+@asynctest.patch("bloodaxe.httpx.AsyncClient")
+@pytest.mark.parametrize("exception", [(exception,) for exception in HTTP_EXCEPTIONS])
+async def test_make_post_request_raise_flow_error(mocked_httpx_client, flow_url, exception):
+    mocked_httpx_client.return_value.__aenter__.return_value.post = asynctest.CoroutineMock(
+        side_effect=exception
+    )
+
+    with pytest.raises(FlowError):
+        await make_post_request(flow_url, data={})
+
+    mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(flow_url, data={})

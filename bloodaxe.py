@@ -71,7 +71,7 @@ async def make_get_request(url, *args, **kwargs):
 async def make_post_request(url, data, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.post(url, data=json.loads(data))
+            r = await client.post(url, data=data)
             r.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
@@ -105,8 +105,7 @@ async def flow(toml_data):
         request["url"] = replace_with_template(context, request["url"])
 
         if request.get("data"):
-            request["data"] = replace_with_template(context, request["data"])
-
+            request["data"] = json.loads(replace_with_template(context, request["data"]))
         try:
             result = await make_request(**request)
             show_request_message(SUCCESS, request["name"], request["url"])
