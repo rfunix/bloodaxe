@@ -7,6 +7,7 @@ from bloodaxe import (
     FlowError,
     make_get_request,
     make_post_request,
+    make_request,
     replace_with_template,
     show_request_message,
 )
@@ -15,6 +16,11 @@ from bloodaxe import (
 @pytest.fixture
 def flow_status():
     return "SUCCESS"
+
+
+@pytest.fixture
+def flow_http_method():
+    return "GET"
 
 
 @pytest.fixture
@@ -102,3 +108,12 @@ async def test_make_post_request_raise_flow_error(mocked_httpx_client, flow_url,
         await make_post_request(flow_url, data={})
 
     mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(flow_url, data={})
+
+
+@pytest.mark.asyncio
+async def test_make_request(httpserver, flow_http_method, response):
+    httpserver.expect_request("/test/").respond_with_json(response)
+
+    request_response = await make_request(httpserver.url_for("/test/"), flow_http_method)
+
+    assert request_response == response

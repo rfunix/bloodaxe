@@ -4,7 +4,7 @@ duration = 60
 
 [[api]]
 name = "user_api"
-base_url = "http://192.168.1.105:8080"
+base_url = "http://192.168.1.107:8080"
 
 [[api]]
 name = "any_api"
