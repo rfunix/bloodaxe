@@ -156,7 +156,6 @@ def test_show_metrics(mocker, mocked_echo, flows):
     mocked_echo.assert_has_calls(mocked_echo_calls)
 
 
-# TODO: improve this test
 @pytest.mark.asyncio
 async def test_start(
     mocker, httpserver, toml_data, mocked_echo, mocked_secho, get_user_response, post_user_response
