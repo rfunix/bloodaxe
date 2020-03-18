@@ -8,8 +8,7 @@ from pathlib import Path
 import httpx
 import toml
 import typer
-from httpx._exceptions import ConnectTimeout, NetworkError, ReadTimeout
-from httpx.exceptions import HTTPError
+from httpx._exceptions import ConnectTimeout, HTTPError, NetworkError, ReadTimeout
 from jinja2 import Template
 from tabulate import tabulate
 
@@ -19,6 +18,7 @@ ERROR = typer.style("error", fg=typer.colors.RED, bold=True)
 
 REQUEST_MESSAGE = "Request {}, name={}, url={}"
 START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
+SECONDS_MASK = "{0:.2f}"
 
 TABLE_HEADERS = [
     "Total success flows",
@@ -88,7 +88,7 @@ async def make_request(url, method, *args, **kwargs):
     return await func(url, *args, **kwargs)
 
 
-def make_api_info_context(api_info):
+def make_api_context(api_info):
     context = {}
     for api in api_info:
         context[api["name"]] = {"base_url": api["base_url"]}
@@ -96,8 +96,31 @@ def make_api_info_context(api_info):
     return context
 
 
-async def flow(toml_data):
-    context = make_api_info_context(toml_data.get("api")) or {}
+def show_metrics(flows, total_time):
+    success_flows = [flow for flow in flows if flow.success]
+    error_flows = [flow for flow in flows if flow.error]
+    mean_time = 0
+    standard_deviation = 0
+
+    if success_flows:
+        mean_time = statistics.mean([flow.duration for flow in success_flows])
+        standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
+
+    row = [
+        len(success_flows),
+        len(error_flows),
+        len(flows),
+        SECONDS_MASK.format(round(mean_time, 2)),
+        SECONDS_MASK.format(round(standard_deviation, 2)),
+        SECONDS_MASK.format(round(total_time, 2)),
+    ]
+
+    typer.echo("\n")
+    typer.echo(tabulate([row], headers=TABLE_HEADERS))
+
+
+async def run_flow(toml_data):
+    context = make_api_context(toml_data.get("api")) or {}
     start_flow_time = time.time()
     current_flow = Flow()
 
@@ -123,30 +146,6 @@ async def flow(toml_data):
     return current_flow
 
 
-def show_metrics(flows, total_time):
-    success_flows = [flow for flow in flows if flow.success]
-    error_flows = [flow for flow in flows if flow.error]
-    seconds_mask = "{0:.2f}"
-    mean_time = 0
-    standard_deviation = 0
-
-    if success_flows:
-        mean_time = statistics.mean([flow.duration for flow in success_flows])
-        standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
-
-    row = [
-        len(success_flows),
-        len(error_flows),
-        len(flows),
-        seconds_mask.format(round(mean_time, 2)),
-        seconds_mask.format(round(standard_deviation, 2)),
-        seconds_mask.format(round(total_time, 2)),
-    ]
-
-    typer.echo("\n")
-    typer.echo(tabulate([row], headers=TABLE_HEADERS))
-
-
 async def start(toml_data):
     flows = tuple()
     duration = toml_data["configs"]["duration"]
@@ -166,7 +165,7 @@ async def start(toml_data):
         if elapsed_seconds >= duration:
             break
 
-        results = await asyncio.gather(*[flow(toml_data) for _ in range(number_of_concurrent_flows)])
+        results = await asyncio.gather(*[run_flow(toml_data) for _ in range(number_of_concurrent_flows)])
 
         flows += tuple(results)
 
@@ -178,8 +177,8 @@ def bloodaxe(config_file: Path):
         toml_data = toml.load(config_file)
     except (TypeError, toml.TomlDecodeError):
         typer.echo("Invalid toml file")
-
-    asyncio.run(start(toml_data))
+    else:
+        asyncio.run(start(toml_data))
 
 
 if __name__ == "__main__":
