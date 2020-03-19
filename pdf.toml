@@ -1,0 +1,22 @@
+[configs]
+number_of_concurrent_flows = 20
+duration = 60
+
+[[api]]
+name = "pdf_service"
+base_url = "https://uw4aph3g36.execute-api.us-east-1.amazonaws.com"
+
+[[request]]
+name = "dispatch"
+url = "{{ pdf_service.base_url }}/staging/dispatch"
+method = "POST"
+save_result = true
+[request.data]
+from_file = "req.json"
+
+[[request]]
+name = "retrieve"
+url = "{{ pdf_service.base_url }}/staging/retrieve"
+method = "GET"
+[request.params]
+process_id = "{{ dispatch.process_id }}"
