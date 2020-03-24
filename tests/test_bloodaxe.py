@@ -1,4 +1,6 @@
+import json
 import statistics
+from unittest.mock import patch
 
 import asynctest
 import pytest
@@ -7,6 +9,7 @@ import typer
 from tabulate import tabulate
 
 from bloodaxe import (
+    DEFAULT_TIMEOUT,
     HTTP_EXCEPTIONS,
     REQUEST_MESSAGE,
     SECONDS_MASK,
@@ -14,6 +17,9 @@ from bloodaxe import (
     TABLE_HEADERS,
     FlowError,
     bloodaxe,
+    from_file,
+    generate_request_data,
+    generate_request_params,
     make_api_context,
     make_get_request,
     make_post_request,
@@ -45,7 +51,7 @@ def test_replace_with_template_with_str_data(context):
 async def test_make_get_request(httpserver, response):
     httpserver.expect_request("/teste/").respond_with_json(response)
 
-    request_response = await make_get_request(httpserver.url_for("/teste/"))
+    request_response = await make_get_request(httpserver.url_for("/teste/"), timeout=DEFAULT_TIMEOUT)
 
     assert request_response == response
 
@@ -58,17 +64,21 @@ async def test_make_get_request_raise_flow_error(mocked_httpx_client, flow_url, 
         side_effect=exception
     )
 
-    with pytest.raises(FlowError):
-        await make_get_request(flow_url)
+    params = {"name": "Ivy"}
 
-    mocked_httpx_client.return_value.__aenter__.return_value.get.assert_called_with(flow_url)
+    with pytest.raises(FlowError):
+        await make_get_request(flow_url, params=params, timeout=DEFAULT_TIMEOUT)
+
+    mocked_httpx_client.return_value.__aenter__.return_value.get.assert_called_with(
+        flow_url, params=params, timeout=DEFAULT_TIMEOUT
+    )
 
 
 @pytest.mark.asyncio
 async def test_make_post_request(httpserver, response):
     httpserver.expect_request("/test/").respond_with_json(response)
 
-    request_response = await make_post_request(httpserver.url_for("/test/"), data={})
+    request_response = await make_post_request(httpserver.url_for("/test/"), data={}, timeout=DEFAULT_TIMEOUT)
 
     assert request_response == response
 
@@ -80,18 +90,23 @@ async def test_make_post_request_raise_flow_error(mocked_httpx_client, flow_url,
     mocked_httpx_client.return_value.__aenter__.return_value.post = asynctest.CoroutineMock(
         side_effect=exception
     )
+    data = {"name": "lagertha"}
 
     with pytest.raises(FlowError):
-        await make_post_request(flow_url, data={})
+        await make_post_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT)
 
-    mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(flow_url, data={})
+    mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(
+        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT
+    )
 
 
 @pytest.mark.asyncio
 async def test_make_request(httpserver, flow_http_method, response):
     httpserver.expect_request("/test/").respond_with_json(response)
 
-    request_response = await make_request(httpserver.url_for("/test/"), flow_http_method)
+    request_response = await make_request(
+        httpserver.url_for("/test/"), flow_http_method, timeout=DEFAULT_TIMEOUT
+    )
 
     assert request_response == response
 
@@ -201,3 +216,68 @@ def test_bloodaxe_with_type_error(exception, mocker, mocked_echo):
     bloodaxe("any_path")
 
     mocked_echo.assert_called_with(expected_error_message)
+
+
+def test_from_file(mocker):
+    json_data = {"name": "eric bloodaxe"}
+    file_path = "teste.json"
+    mock_json_load = mocker.patch("bloodaxe.json.loads")
+    mock_json_load.return_value = json_data
+
+    with patch("builtins.open", mocker.mock_open()) as mock_file:
+        data = from_file(file_path)
+
+    assert data == json_data
+    mock_json_load.assert_called()
+    mock_file.assert_called_with(file_path)
+
+
+def test_from_file_with_json_decode_error(mocker):
+    file_path = "teste.json"
+    expected_error_message = f"Invalid json file, file={file_path}"
+    mock_json_load = mocker.patch("bloodaxe.json.loads")
+    mock_json_load.side_effect = json.JSONDecodeError("error", "\n\n", 1)
+
+    with patch("builtins.open", mocker.mock_open()) as mock_file:
+        with pytest.raises(ValueError, match=expected_error_message):
+            from_file(file_path)
+
+    mock_json_load.assert_called()
+    mock_file.assert_called_with(file_path)
+
+
+def test_generate_request_data(mocker, toml_data, context):
+    context["get_user"] = {"firstname": "Freydis", "Lastname": "Eriksdottir", "status": "active"}
+    context["user_api"] = {"base_url": "any_url"}
+    data = toml_data["request"][1]["data"]
+    expected_request_data = json.loads(replace_with_template(context, data))
+
+    request_data = generate_request_data(context, data)
+
+    assert request_data == expected_request_data
+
+
+def test_generate_request_data_with_from_file(mocker, toml_data, context):
+    context["get_user"] = {"firstname": "Freydis", "Lastname": "Eriksdottir", "status": "active"}
+    context["user_api"] = {"base_url": "any_url"}
+    data = toml_data["request"][1]["data"]
+    expected_request_data = json.loads(replace_with_template(context, data))
+    mock_from_file = mocker.patch("bloodaxe.from_file")
+    mock_from_file.return_value = data
+    file_path = "teste.json"
+    from_file_data = {"from_file": file_path}
+
+    request_data = generate_request_data(context, from_file_data)
+
+    assert request_data == expected_request_data
+    mock_from_file.assert_called_with(file_path)
+
+
+def test_generate_request_params():
+    context = {"viking_api": {"name": "Harald"}}
+    params = {"name": "{{ viking_api.name }}"}
+    expected_params = json.loads(replace_with_template(context, params))
+
+    request_params = generate_request_params(context, params)
+
+    assert request_params == expected_params
