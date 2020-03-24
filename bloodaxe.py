@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 import statistics
 import time
@@ -19,6 +20,7 @@ ERROR = typer.style("error", fg=typer.colors.RED, bold=True)
 REQUEST_MESSAGE = "Request {}, name={}, url={}"
 START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
 SECONDS_MASK = "{0:.2f}"
+DEFAULT_TIMEOUT = 10
 
 TABLE_HEADERS = [
     "Total success flows",
@@ -57,26 +59,26 @@ def replace_with_template(context, data):
     return template.render(**context)
 
 
-async def make_get_request(url, *args, **kwargs):
+async def make_get_request(url, timeout, params=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.get(url)
-            r.raise_for_status()
+            req = await client.get(url, params=params, timeout=timeout)
+            req.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_get_request, exc={exc}")
 
-    return r.json()
+    return req.json()
 
 
-async def make_post_request(url, data, *args, **kwargs):
+async def make_post_request(url, data, timeout, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.post(url, data=data)
-            r.raise_for_status()
+            req = await client.post(url, data=json.dumps(data), timeout=timeout)
+            req.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
 
-    return r.json()
+    return req.json()
 
 
 async def make_request(url, method, *args, **kwargs):
@@ -86,14 +88,6 @@ async def make_request(url, method, *args, **kwargs):
         raise FlowError(f"An error ocurred when make_request, invalid http method={method}")
 
     return await func(url, *args, **kwargs)
-
-
-def make_api_context(api_info):
-    context = {}
-    for api in api_info:
-        context[api["name"]] = {"base_url": api["base_url"]}
-
-    return context
 
 
 def show_metrics(flows, total_time):
@@ -119,16 +113,51 @@ def show_metrics(flows, total_time):
     typer.echo(tabulate([row], headers=TABLE_HEADERS))
 
 
+def from_file(file_path):
+    with open(file_path) as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            raise ValueError(f"Invalid json file, file={file_path}")
+
+        return data
+
+
+def generate_request_data(context, data):
+    if data.get("from_file"):
+        data = from_file(data.get("from_file"))
+
+    return json.loads(replace_with_template(context, data))
+
+
+def generate_request_params(context, params):
+    return json.loads(replace_with_template(context, params))
+
+
+def make_api_context(api_info):
+    context = {}
+    for api in api_info:
+        context[api["name"]] = {"base_url": api["base_url"]}
+
+    return context
+
+
 async def run_flow(toml_data):
-    context = make_api_context(toml_data.get("api")) or {}
+    flow_config = copy.deepcopy(toml_data)
+    context = make_api_context(flow_config.get("api")) or {}
     start_flow_time = time.time()
     current_flow = Flow()
 
-    for request in toml_data["request"]:
+    for request in flow_config["request"]:
+        request["timeout"] = request.get("timeout") or DEFAULT_TIMEOUT
         request["url"] = replace_with_template(context, request["url"])
 
         if request.get("data"):
-            request["data"] = json.loads(replace_with_template(context, request["data"]))
+            request["data"] = generate_request_data(context, request["data"])
+
+        if request.get("params"):
+            request["params"] = generate_request_params(context, request["params"])
+
         try:
             result = await make_request(**request)
             show_request_message(SUCCESS, request["name"], request["url"])

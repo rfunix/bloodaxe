@@ -25,6 +25,7 @@ def toml_data():
                 "url": "{{ user_api.base_url }}/users/1",
                 "method": "GET",
                 "save_result": True,
+                "params": {"name": "Bjorn"},
             },
             {
                 "name": "create_new_user",
