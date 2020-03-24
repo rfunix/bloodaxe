@@ -14,7 +14,17 @@ base_url = "http://192.168.1.105:1010"
 name = "get_user"
 url = "{{ user_api.base_url }}/users/1"
 method = "GET"
+timeout = 60
 save_result = true
+
+[[request]]
+name ="get_user_with_params"
+url = "{{ user_api.base_url }}/users/"
+method = "GET"
+timeout = 60
+save_result = false
+[request.params]
+name = "{{ get_user.name }}"
 
 [[request]]
 name = "create_new_user"
@@ -24,3 +34,10 @@ method = "POST"
 firstname = "{{ get_user.firstname }} teste"
 lastname = "{{ get_user.Lastname }} teste"
 status = "{{ get_user.status }} teste"
+
+[[request]]
+name = "create_new_user_with_from_file"
+url = "{{  user_api.base_url }}/users/"
+method = "POST"
+[request.data]
+from_file = "user.json"
