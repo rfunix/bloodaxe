@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import json
+import os
 import statistics
 import time
 from dataclasses import dataclass
@@ -183,6 +184,10 @@ def make_api_context(api_info):
     context = {}
     for api in api_info:
         context[api["name"]] = {"base_url": api["base_url"]}
+
+        env_vars = api.get("envvars", {})
+        for key, value in env_vars.items():
+            context[api["name"]][key] = os.environ[value]
 
     return context
 

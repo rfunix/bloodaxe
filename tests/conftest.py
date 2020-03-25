@@ -18,7 +18,9 @@ def flows():
 def toml_data():
     return {
         "configs": {"number_of_concurrent_flows": 1, "duration": 1},
-        "api": [{"name": "user_api", "base_url": "http://localhost:46549"}],
+        "api": [
+            {"name": "user_api", "base_url": "http://localhost:46549", "envvars": {"client_id": "CLIENT_ID"}}
+        ],
         "request": [
             {
                 "name": "get_user",
