@@ -13,7 +13,14 @@ from httpx._exceptions import ConnectTimeout, HTTPError, NetworkError, ReadTimeo
 from jinja2 import Template
 from tabulate import tabulate
 
-HTTP_METHODS_FUNC_MAPPING = {"GET": "make_get_request", "POST": "make_post_request"}
+HTTP_METHODS_FUNC_MAPPING = {
+    "GET": "make_get_request",
+    "POST": "make_post_request",
+    "PUT": "make_put_request",
+    "PATCH": "make_patch_request",
+    "DELETE": "make_delete_request",
+}
+
 SUCCESS = typer.style("success", fg=typer.colors.GREEN, bold=True)
 ERROR = typer.style("error", fg=typer.colors.RED, bold=True)
 
@@ -59,10 +66,10 @@ def replace_with_template(context, data):
     return template.render(**context)
 
 
-async def make_get_request(url, timeout, params=None, *args, **kwargs):
+async def make_get_request(url, timeout, params=None, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.get(url, params=params, timeout=timeout)
+            req = await client.get(url, params=params, timeout=timeout, headers=headers)
             req.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_get_request, exc={exc}")
@@ -70,10 +77,43 @@ async def make_get_request(url, timeout, params=None, *args, **kwargs):
     return req.json()
 
 
-async def make_post_request(url, data, timeout, *args, **kwargs):
+async def make_delete_request(url, timeout, params=None, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.post(url, data=json.dumps(data), timeout=timeout)
+            req = await client.delete(url, params=params, timeout=timeout, headers=headers)
+            req.raise_for_status()
+    except HTTP_EXCEPTIONS as exc:
+        raise FlowError(f"An error occurred when make_delete_request, exc={exc}")
+
+    return req.json()
+
+
+async def make_put_request(url, data, timeout, headers=None, *args, **kwargs):
+    try:
+        async with httpx.AsyncClient() as client:
+            req = await client.put(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            req.raise_for_status()
+    except HTTP_EXCEPTIONS as exc:
+        raise FlowError(f"An error occurred when make_put_request, exc={exc}")
+
+    return req.json()
+
+
+async def make_patch_request(url, data, timeout, headers=None, *args, **kwargs):
+    try:
+        async with httpx.AsyncClient() as client:
+            req = await client.patch(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            req.raise_for_status()
+    except HTTP_EXCEPTIONS as exc:
+        raise FlowError(f"An error occurred when make_patch_request, exc={exc}")
+
+    return req.json()
+
+
+async def make_post_request(url, data, timeout, headers=None, *args, **kwargs):
+    try:
+        async with httpx.AsyncClient() as client:
+            req = await client.post(url, data=json.dumps(data), timeout=timeout, headers=headers)
             req.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
@@ -82,6 +122,7 @@ async def make_post_request(url, data, timeout, *args, **kwargs):
 
 
 async def make_request(url, method, *args, **kwargs):
+    method = method.upper()
     try:
         func = eval(HTTP_METHODS_FUNC_MAPPING[method])
     except KeyError:
@@ -130,6 +171,10 @@ def generate_request_data(context, data):
     return json.loads(replace_with_template(context, data))
 
 
+def generate_request_headers(context, headers):
+    return json.loads(replace_with_template(context, headers))
+
+
 def generate_request_params(context, params):
     return json.loads(replace_with_template(context, params))
 
@@ -157,6 +202,9 @@ async def run_flow(toml_data):
 
         if request.get("params"):
             request["params"] = generate_request_params(context, request["params"])
+
+        if request.get("headers"):
+            request["headers"] = generate_request_headers(context, request["headers"])
 
         try:
             result = await make_request(**request)
