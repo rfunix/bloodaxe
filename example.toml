@@ -4,11 +4,26 @@ duration = 60
 
 [[api]]
 name = "user_api"
-base_url = "http://192.168.1.103:8080"
+base_url = "http://127.0.0.1:8080"
+[api.envvars]
+client_id = "CLIENT_ID"
+client_secret = "CLIENT_SECRET"
 
 [[api]]
 name = "any_api"
-base_url = "http://192.168.1.105:1010"
+base_url = "http://127.0.0.1:1010"
+
+[[request]]
+name = "get_token"
+url = "{{ user_api.base_url }}/token/"
+method = "POST"
+timeout = 60
+save_result = true
+[request.data]
+client_id = "{{ user_api.client_id }}"
+client_secret = "{{ user_api.client_secret }}"
+[request.headers]
+Content-Type = 'application/x-www-form-urlencoded'
 
 [[request]]
 name = "get_user"
@@ -16,6 +31,8 @@ url = "{{ user_api.base_url }}/users/1"
 method = "GET"
 timeout = 60
 save_result = true
+[request.headers]
+Authorization = "{{ get_token.access_token}}"
 
 [[request]]
 name ="get_user_with_params"
@@ -25,6 +42,8 @@ timeout = 60
 save_result = false
 [request.params]
 name = "{{ get_user.name }}"
+[request.headers]
+Authorization = "{{ get_token.access_token}}"
 
 [[request]]
 name = "create_new_user"
@@ -34,10 +53,14 @@ method = "POST"
 firstname = "{{ get_user.firstname }} teste"
 lastname = "{{ get_user.Lastname }} teste"
 status = "{{ get_user.status }} teste"
+[request.headers]
+Authorization = "{{ get_token.access_token}}"
 
 [[request]]
 name = "create_new_user_with_from_file"
 url = "{{  user_api.base_url }}/users/"
-method = "POST"
+method = "PATCH"
 [request.data]
 from_file = "user.json"
+[request.headers]
+Authorization = "{{ get_token.access_token}}"
