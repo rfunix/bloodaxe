@@ -19,10 +19,14 @@ from bloodaxe import (
     bloodaxe,
     from_file,
     generate_request_data,
+    generate_request_headers,
     generate_request_params,
     make_api_context,
+    make_delete_request,
     make_get_request,
+    make_patch_request,
     make_post_request,
+    make_put_request,
     make_request,
     replace_with_template,
     run_flow,
@@ -65,12 +69,41 @@ async def test_make_get_request_raise_flow_error(mocked_httpx_client, flow_url, 
     )
 
     params = {"name": "Ivy"}
+    headers = {"Authorization": "token"}
 
     with pytest.raises(FlowError):
-        await make_get_request(flow_url, params=params, timeout=DEFAULT_TIMEOUT)
+        await make_get_request(flow_url, params=params, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.get.assert_called_with(
-        flow_url, params=params, timeout=DEFAULT_TIMEOUT
+        flow_url, params=params, timeout=DEFAULT_TIMEOUT, headers=headers
+    )
+
+
+@pytest.mark.asyncio
+async def test_make_delete_request(httpserver, response):
+    httpserver.expect_request("/teste/").respond_with_json(response)
+
+    request_response = await make_delete_request(httpserver.url_for("/teste/"), timeout=DEFAULT_TIMEOUT)
+
+    assert request_response == response
+
+
+@pytest.mark.asyncio
+@asynctest.patch("bloodaxe.httpx.AsyncClient")
+@pytest.mark.parametrize("exception", [(exception,) for exception in HTTP_EXCEPTIONS])
+async def test_make_delete_request_raise_flow_error(mocked_httpx_client, flow_url, exception):
+    mocked_httpx_client.return_value.__aenter__.return_value.delete = asynctest.CoroutineMock(
+        side_effect=exception
+    )
+
+    params = {"name": "Ivy"}
+    headers = {"Authorization": "token"}
+
+    with pytest.raises(FlowError):
+        await make_delete_request(flow_url, params=params, timeout=DEFAULT_TIMEOUT, headers=headers)
+
+    mocked_httpx_client.return_value.__aenter__.return_value.delete.assert_called_with(
+        flow_url, params=params, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
@@ -91,12 +124,69 @@ async def test_make_post_request_raise_flow_error(mocked_httpx_client, flow_url,
         side_effect=exception
     )
     data = {"name": "lagertha"}
+    headers = {"Authorization": "token"}
 
     with pytest.raises(FlowError):
-        await make_post_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT)
+        await make_post_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(
-        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT
+        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT, headers=headers
+    )
+
+
+@pytest.mark.asyncio
+async def test_make_put_request(httpserver, response):
+    httpserver.expect_request("/test/").respond_with_json(response)
+
+    request_response = await make_put_request(httpserver.url_for("/test/"), data={}, timeout=DEFAULT_TIMEOUT)
+
+    assert request_response == response
+
+
+@pytest.mark.asyncio
+@asynctest.patch("bloodaxe.httpx.AsyncClient")
+@pytest.mark.parametrize("exception", [(exception,) for exception in HTTP_EXCEPTIONS])
+async def test_make_put_request_raise_flow_error(mocked_httpx_client, flow_url, exception):
+    mocked_httpx_client.return_value.__aenter__.return_value.put = asynctest.CoroutineMock(
+        side_effect=exception
+    )
+    data = {"name": "lagertha"}
+    headers = {"Authorization": "token"}
+
+    with pytest.raises(FlowError):
+        await make_put_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
+
+    mocked_httpx_client.return_value.__aenter__.return_value.put.assert_called_with(
+        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT, headers=headers
+    )
+
+
+@pytest.mark.asyncio
+async def test_make_patch_request(httpserver, response):
+    httpserver.expect_request("/test/").respond_with_json(response)
+
+    request_response = await make_patch_request(
+        httpserver.url_for("/test/"), data={}, timeout=DEFAULT_TIMEOUT
+    )
+
+    assert request_response == response
+
+
+@pytest.mark.asyncio
+@asynctest.patch("bloodaxe.httpx.AsyncClient")
+@pytest.mark.parametrize("exception", [(exception,) for exception in HTTP_EXCEPTIONS])
+async def test_make_patch_request_raise_flow_error(mocked_httpx_client, flow_url, exception):
+    mocked_httpx_client.return_value.__aenter__.return_value.patch = asynctest.CoroutineMock(
+        side_effect=exception
+    )
+    data = {"name": "lagertha"}
+    headers = {"Authorization": "token"}
+
+    with pytest.raises(FlowError):
+        await make_patch_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
+
+    mocked_httpx_client.return_value.__aenter__.return_value.patch.assert_called_with(
+        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
@@ -113,7 +203,7 @@ async def test_make_request(httpserver, flow_http_method, response):
 
 @pytest.mark.asyncio
 async def test_make_request_with_flow_error():
-    expected_error_message = "An error ocurred when make_request, invalid http method=test"
+    expected_error_message = "An error ocurred when make_request, invalid http method=TEST"
     with pytest.raises(FlowError, match=expected_error_message):
         await make_request("any_url", method="test")
 
@@ -129,7 +219,10 @@ def test_make_api_info_context(api_info):
 async def test_run_flow(httpserver, toml_data, get_user_response, post_user_response):
     toml_data["api"][0]["base_url"] = f"http://{httpserver.host}:{httpserver.port}"
     httpserver.expect_request("/users/1", method="GET").respond_with_json(get_user_response)
+    httpserver.expect_request("/users/1", method="DELETE").respond_with_json(get_user_response)
     httpserver.expect_request("/users/", method="POST").respond_with_json(post_user_response)
+    httpserver.expect_request("/users/", method="PATCH").respond_with_json(post_user_response)
+    httpserver.expect_request("/users/", method="PUT").respond_with_json(post_user_response)
 
     flow_result = await run_flow(toml_data)
 
@@ -281,3 +374,13 @@ def test_generate_request_params():
     request_params = generate_request_params(context, params)
 
     assert request_params == expected_params
+
+
+def test_generate_request_headers():
+    context = {"viking_api": {"token": "token_value"}}
+    headers = {"Authorization": "{{ viking_api.token }}"}
+    expected_headers = {"Authorization": "token_value"}
+
+    request_headers = generate_request_headers(context, headers)
+
+    assert request_headers == expected_headers

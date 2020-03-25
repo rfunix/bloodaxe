@@ -26,6 +26,7 @@ def toml_data():
                 "method": "GET",
                 "save_result": True,
                 "params": {"name": "Bjorn"},
+                "headers": {"Content-type": "application/json"},
             },
             {
                 "name": "create_new_user",
@@ -36,6 +37,33 @@ def toml_data():
                     "lastname": "{{ get_user.Lastname }} test",
                     "status": "{{ get_user.status }} test",
                 },
+            },
+            {
+                "name": "update_user",
+                "url": "{{  user_api.base_url }}/users/",
+                "method": "PUT",
+                "data": {
+                    "firstname": "{{ get_user.firstname }} testx",
+                    "lastname": "{{ get_user.Lastname }} testx",
+                    "status": "{{ get_user.status }} testx",
+                },
+            },
+            {
+                "name": "partial_update_user",
+                "url": "{{  user_api.base_url }}/users/",
+                "method": "PATCH",
+                "data": {
+                    "firstname": "{{ get_user.firstname }} testz",
+                    "lastname": "{{ get_user.Lastname }} testz",
+                },
+            },
+            {
+                "name": "delete_user",
+                "url": "{{ user_api.base_url }}/users/1",
+                "method": "DELETE",
+                "save_result": True,
+                "params": {"name": "Ivar"},
+                "headers": {"Content-type": "application/json"},
             },
         ],
     }
