@@ -18,6 +18,7 @@ pytest-sugar = "*"
 pytest-httpserver = "*"
 pytest-asyncio = "*"
 asynctest = "*"
+pytest-env = "*"
 
 [packages]
 toml = "*"
