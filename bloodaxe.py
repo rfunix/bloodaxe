@@ -138,7 +138,7 @@ def show_metrics(flows, total_time):
     mean_time = 0
     standard_deviation = 0
 
-    if success_flows:
+    if len(success_flows) > 1:
         mean_time = statistics.mean([flow.duration for flow in success_flows])
         standard_deviation = statistics.stdev([flow.duration for flow in success_flows])
 
