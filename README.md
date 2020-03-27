@@ -15,7 +15,6 @@ Options:
 
   --help                Show this message and exit.
 ```
-
 `$ bloodaxe example.toml`
 
 **Installation Options**
@@ -27,8 +26,7 @@ Install with [`pip`](https://pypi.org/project/bloodaxe/)
 
 `$ bloodaxe`
 
-
-**Api flow config examples**
+**Flow configuration examples**
 ---
 ```toml
 [configs]
