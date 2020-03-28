@@ -41,6 +41,8 @@ TABLE_HEADERS = [
 
 HTTP_EXCEPTIONS = (HTTPError, NetworkError, ReadTimeout, ConnectTimeout)
 
+app = typer.Typer()
+
 
 class FlowError(Exception):
     pass
@@ -254,9 +256,10 @@ async def start(toml_data):
     show_metrics(flows, elapsed_seconds)
 
 
-def bloodaxe(config_file: Path):
+@app.command()
+def main(flow_config_file: Path):
     try:
-        toml_data = toml.load(config_file)
+        toml_data = toml.load(flow_config_file)
     except (TypeError, toml.TomlDecodeError):
         typer.echo("Invalid toml file")
     else:
@@ -264,4 +267,4 @@ def bloodaxe(config_file: Path):
 
 
 if __name__ == "__main__":
-    typer.run(bloodaxe)
+    app()

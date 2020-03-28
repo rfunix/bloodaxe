@@ -16,11 +16,11 @@ from bloodaxe import (
     START_MESSAGE,
     TABLE_HEADERS,
     FlowError,
-    bloodaxe,
     from_file,
     generate_request_data,
     generate_request_headers,
     generate_request_params,
+    main,
     make_api_context,
     make_delete_request,
     make_get_request,
@@ -289,24 +289,24 @@ async def test_start(
     mock_show_metrics.assert_called()
 
 
-def test_bloodaxe(mocker, toml_data):
+def test_main(mocker, toml_data):
     mocked_start = mocker.patch("bloodaxe.start")
     mocked_toml_load = mocker.patch("bloodaxe.toml.load")
     mocked_toml_load.return_value = toml_data
 
-    bloodaxe("any_path")
+    main("any_path")
 
     mocked_toml_load.assert_called_with("any_path")
     mocked_start.assert_called_with(toml_data)
 
 
 @pytest.mark.parametrize("exception", [(TypeError,), (toml.TomlDecodeError,)])
-def test_bloodaxe_with_type_error(exception, mocker, mocked_echo):
+def test_main_with_type_error(exception, mocker, mocked_echo):
     mocked_toml_load = mocker.patch("bloodaxe.toml.load")
     mocked_toml_load.side_effect = exception
     expected_error_message = "Invalid toml file"
 
-    bloodaxe("any_path")
+    main("any_path")
 
     mocked_echo.assert_called_with(expected_error_message)
 
