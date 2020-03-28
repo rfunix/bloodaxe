@@ -13,7 +13,7 @@ jobs:
   install:
     executor: poetry/default
     steps:
-      - poetry/install
+      - install
       - run: echo "the CLI is now installed"
   run:
     executor: poetry/default
