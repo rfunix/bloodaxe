@@ -2,6 +2,8 @@
 
 `bloodaxe` is the nice way to testing and metrifying api flows.
 
+![GIF demo](images/demo.gif)
+
 **Usage**
 ---
 
