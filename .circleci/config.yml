@@ -1,5 +1,5 @@
 version: 2.1
-jobs: 
+jobs:
   build:  
     docker:
       - image: circleci/python:3.8
