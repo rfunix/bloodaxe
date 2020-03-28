@@ -2,6 +2,12 @@ version: 2.1
 
 orbs:
   poetry: australianunions/poetry@0.1.26
+  
+workflows:
+  bloodaxe-ci:
+    jobs:
+      - install
+      - run
 
 jobs:
   install:
@@ -9,7 +15,7 @@ jobs:
     steps:
       - poetry/install
       - run: echo "the CLI is now installed"
-  use-executor:
+  run:
     executor: poetry/default
     steps:
       - run:
