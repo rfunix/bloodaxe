@@ -100,7 +100,7 @@ Authorization = "{{ get_token.access_token}}"
 **Backlog**
 ---
 
-* Add retry config for request(opcional)
+* Add retry config for request
 * Add response status check
 * Add response header check
 * Add response body check
