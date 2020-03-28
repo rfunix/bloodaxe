@@ -1,24 +1,20 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@0.2.1
-  poetry: frameio/poetry@0.13.3
+  poetry: australianunions/poetry@0.1.26
 
 jobs:
-  build-and-test:
+  install:
     executor: poetry/default
     steps:
-      - checkout
       - poetry/install
-      - python/load-cache
-      - python/save-cache
+      - run: echo "the CLI is now installed"
+  use-executor:
+    executor: poetry/default
+    steps:
       - run:
           command: make lint
           name: lint
       - run:
           command: make test
           name: Test
-workflows:
-  main:
-    jobs:
-      - build-and-test
