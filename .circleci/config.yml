@@ -1,0 +1,26 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+  poetry: frameio/poetry@0.13.3
+
+jobs:
+  build-and-test:
+    executor: poetry/default
+    steps:
+      - install
+      - run:
+          command: make lint
+          name: lint
+      - run:
+          command: make test
+          name: Test
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - python/save-cache
+workflows:
+  main:
+    jobs:
+      - build-and-test
