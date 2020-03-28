@@ -9,9 +9,9 @@ jobs:
     executor: poetry/default
     steps:
       - checkout
+      - install
       - python/load-cache
       - python/save-cache
-      - install
       - run:
           command: make lint
           name: lint
