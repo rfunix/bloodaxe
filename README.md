@@ -1,5 +1,7 @@
 ![bloodaxe logo](/images/logo.png)
 
+[![CircleCI](https://circleci.com/gh/rfunix/bloodaxe.svg?style=svg)](https://circleci.com/gh/rfunix/bloodaxe)
+
 `bloodaxe` is the nice way to testing and metrifying api flows.
 
 ![GIF demo](images/demo.gif)
