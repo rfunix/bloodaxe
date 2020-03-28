@@ -1,11 +1,11 @@
 test:
-	pipenv run pytest -sx
+	poetry run pytest -sx
 
 check-dead-fixtures:
-	pipenv run pytest --dead-fixtures
+	poetry run pytest --dead-fixtures
 
 pyformat:
-	pipenv run black .
+	poetry run black .
 
 lint:
-	pipenv run pre-commit install && pipenv run pre-commit run -a -v
+	poetry run pre-commit install && poetry run pre-commit run -a -v

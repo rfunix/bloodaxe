@@ -1,3 +1,38 @@
+[tool.poetry]
+name = "bloodaxe"
+version = "0.1.0"
+description = "bloodaxe is the nice way to testing and metrifying api flows."
+authors = ["rfunix <rafinha.unix@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+bloodaxe = "bloodaxe:app"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+toml = "^0.10.0"
+httpx = "^0.12.1"
+jinja2 = "^2.11.1"
+typer = {extras = ["all"], version = "^0.1.0"}
+tabulate = "^0.8.7"
+
+[tool.poetry.dev-dependencies]
+pytest = "5.3.5"
+black = "^18.9b0"
+ipython = "*"
+ipdb = "*"
+pytest-cov = "*"
+pytest-randomly = "*"
+coverage = "*"
+pre-commit = "*"
+pytest-mock = "*"
+pytest-deadfixtures = "*"
+pytest-sugar = "*"
+pytest-httpserver = "*"
+pytest-asyncio = "*"
+asynctest = "*"
+pytest-env = "*"
+
 [tool.black]
 line-length = 110
 target-version = ["py37"]
@@ -11,3 +46,7 @@ use_parentheses = true
 known_localfolder = "tests,bloodaxe"
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
 default_section = "THIRDPARTY"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
