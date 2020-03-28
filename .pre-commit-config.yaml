@@ -3,8 +3,6 @@ repos:
   rev: v2.3.0
   hooks:
     - id: debug-statements
-    - id: trailing-whitespace
-      args: [--markdown-linebreak-ext=md]
     - id: check-merge-conflict
     - id: check-executables-have-shebangs
     - id: check-ast
