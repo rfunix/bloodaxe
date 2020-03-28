@@ -1,26 +1,31 @@
 version: 2.1
-
-orbs:
-  poetry: australianunions/poetry@0.1.26
-  
-workflows:
-  bloodaxe-ci:
-    jobs:
-      - install
-      - run
-
-jobs:
-  install:
-    executor: poetry/default
-    steps:
-      - install
-      - run: echo "the CLI is now installed"
-  run:
-    executor: poetry/default
-    steps:
+jobs: 
+  build:  
+    working_directory: .
+    docker:
+      - image: circleci/python:3.8
+    steps: # steps that comprise the `build` job
+      - checkout # check out source code to working directory
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.8/site-packages
+      - restore_cache:
+          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
       - run:
-          command: make lint
-          name: lint
+          command: |
+            sudo pip install poetry
+            poetry install
+      - save_cache: # cache Python dependencies using checksum of Pipfile as the cache-key
+          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          paths:
+            - "venv"
       - run:
-          command: make test
-          name: Test
+          command: |
+            make lint
+      - run:
+           command: |
+            make test
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+          destination: tr1
