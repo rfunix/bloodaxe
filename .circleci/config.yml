@@ -9,7 +9,7 @@ jobs:
     executor: poetry/default
     steps:
       - checkout
-      - install
+      - poetry/install
       - python/load-cache
       - python/save-cache
       - run:
