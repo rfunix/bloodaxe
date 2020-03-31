@@ -24,6 +24,7 @@ HTTP_METHODS_FUNC_MAPPING = {
 
 SUCCESS = typer.style("success", fg=typer.colors.GREEN, bold=True)
 ERROR = typer.style("error", fg=typer.colors.RED, bold=True)
+FLOW_ERROR = typer.style("FlowError", bg=typer.colors.RED, fg=typer.colors.WHITE, bold=True)
 
 REQUEST_MESSAGE = "Request {}, name={}, url={}"
 START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
@@ -72,66 +73,102 @@ def replace_with_template(context, data):
 async def make_get_request(url, timeout, params=None, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.get(url, params=params, timeout=timeout, headers=headers)
-            req.raise_for_status()
+            resp = await client.get(url, params=params, timeout=timeout, headers=headers)
+            resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_get_request, exc={exc}")
 
-    return req.json()
+    return resp
 
 
 async def make_delete_request(url, timeout, params=None, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.delete(url, params=params, timeout=timeout, headers=headers)
-            req.raise_for_status()
+            resp = await client.delete(url, params=params, timeout=timeout, headers=headers)
+            resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_delete_request, exc={exc}")
 
-    return req.json()
+    return resp
 
 
 async def make_put_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.put(url, data=json.dumps(data), timeout=timeout, headers=headers)
-            req.raise_for_status()
+            resp = await client.put(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_put_request, exc={exc}")
 
-    return req.json()
+    return resp
 
 
 async def make_patch_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.patch(url, data=json.dumps(data), timeout=timeout, headers=headers)
-            req.raise_for_status()
+            resp = await client.patch(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_patch_request, exc={exc}")
 
-    return req.json()
+    return resp
 
 
 async def make_post_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            req = await client.post(url, data=json.dumps(data), timeout=timeout, headers=headers)
-            req.raise_for_status()
+            resp = await client.post(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
 
-    return req.json()
+    return resp
 
 
-async def make_request(url, method, *args, **kwargs):
+def check_response_data(request_name, data, expected_data):
+    error_msg = (
+        f"Failed to response check, request={request_name}, "
+        f"expected data={expected_data}, received={data}"
+    )
+    try:
+        assert data == expected_data
+    except AssertionError:
+        raise FlowError(error_msg)
+
+
+def check_response_status_code(request_name, status_code, expected_status_code):
+    error_msg = (
+        f"Failed to status_code check, request={request_name}, "
+        f"expected status_code={expected_status_code}, received={status_code}"
+    )
+    try:
+        assert status_code == expected_status_code
+    except AssertionError:
+        raise FlowError(error_msg)
+
+
+def check_response(request_name, data, status_code, response_check=None):
+    if response_check:
+        if response_check.get("data"):
+            check_response_data(request_name, data, response_check["data"])
+        if response_check.get("status_code"):
+            check_response_status_code(request_name, status_code, response_check["status_code"])
+
+
+async def make_request(name, url, method, response_check=None, *args, **kwargs):
     method = method.upper()
     try:
         func = eval(HTTP_METHODS_FUNC_MAPPING[method])
     except KeyError:
         raise FlowError(f"An error ocurred when make_request, invalid http method={method}")
 
-    return await func(url, *args, **kwargs)
+    resp = await func(url, *args, **kwargs)
+    data = resp.json()
+    status_code = resp.status_code
+
+    check_response(name, data, status_code, response_check)
+
+    return data
 
 
 def show_metrics(flows, total_time):
@@ -194,7 +231,7 @@ def make_api_context(api_info):
     return context
 
 
-async def run_flow(toml_data):
+async def run_flow(toml_data, verbose):
     flow_config = copy.deepcopy(toml_data)
     context = make_api_context(flow_config.get("api")) or {}
     start_flow_time = time.time()
@@ -220,6 +257,8 @@ async def run_flow(toml_data):
             show_request_message(ERROR, request["name"], request["url"])
             current_flow.error = exc
             current_flow.success = False
+            if verbose:
+                typer.secho(f"{FLOW_ERROR}: {exc}")
             break
 
         if request.get("save_result"):
@@ -230,7 +269,7 @@ async def run_flow(toml_data):
     return current_flow
 
 
-async def start(toml_data):
+async def start(toml_data, verbose):
     flows = tuple()
     duration = toml_data["configs"]["duration"]
     number_of_concurrent_flows = toml_data["configs"]["number_of_concurrent_flows"]
@@ -249,7 +288,9 @@ async def start(toml_data):
         if elapsed_seconds >= duration:
             break
 
-        results = await asyncio.gather(*[run_flow(toml_data) for _ in range(number_of_concurrent_flows)])
+        results = await asyncio.gather(
+            *[run_flow(toml_data, verbose) for _ in range(number_of_concurrent_flows)]
+        )
 
         flows += tuple(results)
 
@@ -257,13 +298,13 @@ async def start(toml_data):
 
 
 @app.command()
-def main(flow_config_file: Path):
+def main(flow_config_file: Path, verbose: bool = False):
     try:
         toml_data = toml.load(flow_config_file)
     except (TypeError, toml.TomlDecodeError):
         typer.echo("Invalid toml file")
     else:
-        asyncio.run(start(toml_data))
+        asyncio.run(start(toml_data, verbose))
 
 
 if __name__ == "__main__":
