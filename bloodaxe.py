@@ -28,6 +28,10 @@ FLOW_ERROR = typer.style("FlowError", bg=typer.colors.RED, fg=typer.colors.WHITE
 
 REQUEST_MESSAGE = "Request {}, name={}, url={}"
 START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
+RESPONSE_DATA_CHECK_FAILED_MESSAGE = "Failed to response check, request={}, " "expected data={}, received={}"
+RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE = (
+    "Failed to status_code check, request={}, " "expected status_code={}, received={}"
+)
 SECONDS_MASK = "{0:.2f}"
 DEFAULT_TIMEOUT = 10
 
@@ -95,7 +99,7 @@ async def make_delete_request(url, timeout, params=None, headers=None, *args, **
 async def make_put_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.put(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            resp = await client.put(url, data=data, timeout=timeout, headers=headers)
             resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_put_request, exc={exc}")
@@ -106,7 +110,7 @@ async def make_put_request(url, data, timeout, headers=None, *args, **kwargs):
 async def make_patch_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.patch(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            resp = await client.patch(url, data=data, timeout=timeout, headers=headers)
             resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_patch_request, exc={exc}")
@@ -117,7 +121,7 @@ async def make_patch_request(url, data, timeout, headers=None, *args, **kwargs):
 async def make_post_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(url, data=json.dumps(data), timeout=timeout, headers=headers)
+            resp = await client.post(url, data=data, timeout=timeout, headers=headers)
             resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
@@ -125,11 +129,10 @@ async def make_post_request(url, data, timeout, headers=None, *args, **kwargs):
     return resp
 
 
-def check_response_data(request_name, data, expected_data):
-    error_msg = (
-        f"Failed to response check, request={request_name}, "
-        f"expected data={expected_data}, received={data}"
-    )
+def check_response_data(request_name, data, expected_data, context):
+    expected_data = json.loads(replace_with_template(context, expected_data))
+    error_msg = RESPONSE_DATA_CHECK_FAILED_MESSAGE.format(request_name, expected_data, data)
+
     try:
         assert data == expected_data
     except AssertionError:
@@ -137,9 +140,8 @@ def check_response_data(request_name, data, expected_data):
 
 
 def check_response_status_code(request_name, status_code, expected_status_code):
-    error_msg = (
-        f"Failed to status_code check, request={request_name}, "
-        f"expected status_code={expected_status_code}, received={status_code}"
+    error_msg = RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE.format(
+        request_name, expected_status_code, status_code
     )
     try:
         assert status_code == expected_status_code
@@ -147,15 +149,15 @@ def check_response_status_code(request_name, status_code, expected_status_code):
         raise FlowError(error_msg)
 
 
-def check_response(request_name, data, status_code, response_check=None):
+def check_response(request_name, data, status_code, context, response_check=None):
     if response_check:
         if response_check.get("data"):
-            check_response_data(request_name, data, response_check["data"])
+            check_response_data(request_name, data, response_check["data"], context)
         if response_check.get("status_code"):
             check_response_status_code(request_name, status_code, response_check["status_code"])
 
 
-async def make_request(name, url, method, response_check=None, *args, **kwargs):
+async def make_request(context, name, url, method, response_check=None, *args, **kwargs):
     method = method.upper()
     try:
         func = eval(HTTP_METHODS_FUNC_MAPPING[method])
@@ -166,7 +168,7 @@ async def make_request(name, url, method, response_check=None, *args, **kwargs):
     data = resp.json()
     status_code = resp.status_code
 
-    check_response(name, data, status_code, response_check)
+    check_response(name, data, status_code, context, response_check)
 
     return data
 
@@ -251,7 +253,7 @@ async def run_flow(toml_data, verbose):
             request["headers"] = generate_request_headers(context, request["headers"])
 
         try:
-            result = await make_request(**request)
+            result = await make_request(context, **request)
             show_request_message(SUCCESS, request["name"], request["url"])
         except FlowError as exc:
             show_request_message(ERROR, request["name"], request["url"])

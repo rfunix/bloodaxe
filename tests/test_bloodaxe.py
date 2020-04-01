@@ -12,10 +12,14 @@ from bloodaxe import (
     DEFAULT_TIMEOUT,
     HTTP_EXCEPTIONS,
     REQUEST_MESSAGE,
+    RESPONSE_DATA_CHECK_FAILED_MESSAGE,
+    RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE,
     SECONDS_MASK,
     START_MESSAGE,
     TABLE_HEADERS,
     FlowError,
+    check_response_data,
+    check_response_status_code,
     from_file,
     generate_request_data,
     generate_request_headers,
@@ -57,7 +61,8 @@ async def test_make_get_request(httpserver, response):
 
     request_response = await make_get_request(httpserver.url_for("/teste/"), timeout=DEFAULT_TIMEOUT)
 
-    assert request_response == response
+    assert request_response.json() == response
+    assert request_response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -85,7 +90,8 @@ async def test_make_delete_request(httpserver, response):
 
     request_response = await make_delete_request(httpserver.url_for("/teste/"), timeout=DEFAULT_TIMEOUT)
 
-    assert request_response == response
+    assert request_response.json() == response
+    assert request_response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -113,7 +119,8 @@ async def test_make_post_request(httpserver, response):
 
     request_response = await make_post_request(httpserver.url_for("/test/"), data={}, timeout=DEFAULT_TIMEOUT)
 
-    assert request_response == response
+    assert request_response.json() == response
+    assert request_response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -130,7 +137,7 @@ async def test_make_post_request_raise_flow_error(mocked_httpx_client, flow_url,
         await make_post_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(
-        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT, headers=headers
+        flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
@@ -140,7 +147,8 @@ async def test_make_put_request(httpserver, response):
 
     request_response = await make_put_request(httpserver.url_for("/test/"), data={}, timeout=DEFAULT_TIMEOUT)
 
-    assert request_response == response
+    assert request_response.json() == response
+    assert request_response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -157,7 +165,7 @@ async def test_make_put_request_raise_flow_error(mocked_httpx_client, flow_url, 
         await make_put_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.put.assert_called_with(
-        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT, headers=headers
+        flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
@@ -169,7 +177,8 @@ async def test_make_patch_request(httpserver, response):
         httpserver.url_for("/test/"), data={}, timeout=DEFAULT_TIMEOUT
     )
 
-    assert request_response == response
+    assert request_response.json() == response
+    assert request_response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -186,26 +195,26 @@ async def test_make_patch_request_raise_flow_error(mocked_httpx_client, flow_url
         await make_patch_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.patch.assert_called_with(
-        flow_url, data=json.dumps(data), timeout=DEFAULT_TIMEOUT, headers=headers
+        flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
 @pytest.mark.asyncio
-async def test_make_request(httpserver, flow_http_method, response):
+async def test_make_request(httpserver, flow_http_method, response, context):
     httpserver.expect_request("/test/").respond_with_json(response)
 
     request_response = await make_request(
-        httpserver.url_for("/test/"), flow_http_method, timeout=DEFAULT_TIMEOUT
+        context, "req_name", httpserver.url_for("/test/"), flow_http_method, timeout=DEFAULT_TIMEOUT
     )
 
     assert request_response == response
 
 
 @pytest.mark.asyncio
-async def test_make_request_with_flow_error():
+async def test_make_request_with_flow_error(context):
     expected_error_message = "An error ocurred when make_request, invalid http method=TEST"
     with pytest.raises(FlowError, match=expected_error_message):
-        await make_request("any_url", method="test")
+        await make_request(context, "any_request", "any_url", method="test")
 
 
 def test_make_api_info_context(api_info):
@@ -224,7 +233,7 @@ async def test_run_flow(httpserver, toml_data, get_user_response, post_user_resp
     httpserver.expect_request("/users/", method="PATCH").respond_with_json(post_user_response)
     httpserver.expect_request("/users/", method="PUT").respond_with_json(post_user_response)
 
-    flow_result = await run_flow(toml_data)
+    flow_result = await run_flow(toml_data, verbose=False)
 
     assert flow_result.error is None
     assert flow_result.success is True
@@ -237,7 +246,7 @@ async def test_run_flow_with_flow_error(httpserver, toml_data, get_user_response
     toml_data["api"][0]["base_url"] = f"http://{httpserver.host}:{httpserver.port}"
     httpserver.expect_request("/users/1", method="GET").respond_with_json(get_user_response, status=500)
 
-    flow_result = await run_flow(toml_data)
+    flow_result = await run_flow(toml_data, verbose=False)
 
     assert type(flow_result.error) == FlowError
     assert flow_result.success is False
@@ -277,7 +286,7 @@ async def test_start(
         "number_of_concurrent_flows"
     ]
 
-    await start(toml_data)
+    await start(toml_data, verbose=False)
 
     mocked_secho.assert_called_with(
         START_MESSAGE.format(number_of_concurrent_flows, duration),
@@ -297,7 +306,7 @@ def test_main(mocker, toml_data):
     main("any_path")
 
     mocked_toml_load.assert_called_with("any_path")
-    mocked_start.assert_called_with(toml_data)
+    mocked_start.assert_called_with(toml_data, False)
 
 
 @pytest.mark.parametrize("exception", [(TypeError,), (toml.TomlDecodeError,)])
@@ -384,3 +393,46 @@ def test_generate_request_headers():
     request_headers = generate_request_headers(context, headers)
 
     assert request_headers == expected_headers
+
+
+def test_check_response_data():
+    context = {}
+    request_name = "test_req"
+    data = {"name": "test"}
+    expected_data = data
+
+    check_response_data(request_name, data, expected_data, context)
+
+
+def test_check_response_data_with_flow_error():
+    context = {}
+    request_name = "test_req"
+    data = {"name": "test"}
+    expected_data = data.copy()
+    expected_data["name"] = "other_name"
+
+    error_msg = RESPONSE_DATA_CHECK_FAILED_MESSAGE.format(request_name, expected_data, data)
+
+    with pytest.raises(FlowError, match=error_msg):
+        check_response_data(request_name, data, expected_data, context)
+
+
+def test_check_response_status_code():
+    request_name = "test_req"
+    status_code = 201
+    expected_status_code = status_code
+
+    check_response_status_code(request_name, status_code, expected_status_code)
+
+
+def test_check_response_status_code_with_flow_error():
+    request_name = "test_req"
+    status_code = 201
+    expected_status_code = 200
+
+    error_msg = RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE.format(
+        request_name, expected_status_code, status_code
+    )
+
+    with pytest.raises(FlowError, match=error_msg):
+        check_response_status_code(request_name, status_code, expected_status_code)
