@@ -150,11 +150,10 @@ def check_response_status_code(request_name, status_code, expected_status_code):
 
 
 def check_response(request_name, data, status_code, context, response_check=None):
-    if response_check:
-        if response_check.get("data"):
-            check_response_data(request_name, data, response_check["data"], context)
-        if response_check.get("status_code"):
-            check_response_status_code(request_name, status_code, response_check["status_code"])
+    if response_check.get("data"):
+        check_response_data(request_name, data, response_check["data"], context)
+    if response_check.get("status_code"):
+        check_response_status_code(request_name, status_code, response_check["status_code"])
 
 
 async def make_request(context, name, url, method, response_check=None, *args, **kwargs):
@@ -168,7 +167,8 @@ async def make_request(context, name, url, method, response_check=None, *args, *
     data = resp.json()
     status_code = resp.status_code
 
-    check_response(name, data, status_code, context, response_check)
+    if response_check:
+        check_response(name, data, status_code, context, response_check)
 
     return data
 
