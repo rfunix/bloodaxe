@@ -18,6 +18,7 @@ from bloodaxe import (
     START_MESSAGE,
     TABLE_HEADERS,
     FlowError,
+    check_response,
     check_response_data,
     check_response_status_code,
     from_file,
@@ -436,3 +437,23 @@ def test_check_response_status_code_with_flow_error():
 
     with pytest.raises(FlowError, match=error_msg):
         check_response_status_code(request_name, status_code, expected_status_code)
+
+
+def test_check_response_with_data():
+    request_name = "test_req"
+    context = {}
+    status_code = 200
+    data = {"name": "Floki"}
+    response_check = {"data": data}
+
+    check_response(request_name, data, status_code, context, response_check)
+
+
+def test_check_response_with_status_code():
+    request_name = "test_req"
+    context = {}
+    status_code = 200
+    data = {"name": "Floki"}
+    response_check = {"status_code": status_code}
+
+    check_response(request_name, data, status_code, context, response_check)
