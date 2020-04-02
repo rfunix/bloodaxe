@@ -104,10 +104,4 @@ Authorization = "{{ get_token.access_token}}"
 
 **Backlog**
 ---
-
-* Add retry config for request
-* Add response status check
-* Add response header check
-* Add response body check
-* Add command to generate imagem diagram flow based in toml file
-* Request with 1-n relations
+https://github.com/rfunix/bloodaxe/projects/1
