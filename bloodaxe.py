@@ -133,9 +133,7 @@ def check_response_data(request_name, data, expected_data, context):
     expected_data = json.loads(replace_with_template(context, expected_data))
     error_msg = RESPONSE_DATA_CHECK_FAILED_MESSAGE.format(request_name, expected_data, data)
 
-    try:
-        assert data == expected_data
-    except AssertionError:
+    if data != expected_data:
         raise FlowError(error_msg)
 
 
@@ -143,9 +141,8 @@ def check_response_status_code(request_name, status_code, expected_status_code):
     error_msg = RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE.format(
         request_name, expected_status_code, status_code
     )
-    try:
-        assert status_code == expected_status_code
-    except AssertionError:
+
+    if status_code != expected_status_code:
         raise FlowError(error_msg)
 
 
