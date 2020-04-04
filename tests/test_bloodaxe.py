@@ -138,7 +138,7 @@ async def test_make_post_request_raise_flow_error(mocked_httpx_client, flow_url,
         await make_post_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.post.assert_called_with(
-        flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers
+        flow_url, json=data, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
@@ -166,7 +166,7 @@ async def test_make_put_request_raise_flow_error(mocked_httpx_client, flow_url, 
         await make_put_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.put.assert_called_with(
-        flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers
+        flow_url, json=data, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
@@ -196,7 +196,7 @@ async def test_make_patch_request_raise_flow_error(mocked_httpx_client, flow_url
         await make_patch_request(flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers)
 
     mocked_httpx_client.return_value.__aenter__.return_value.patch.assert_called_with(
-        flow_url, data=data, timeout=DEFAULT_TIMEOUT, headers=headers
+        flow_url, json=data, timeout=DEFAULT_TIMEOUT, headers=headers
     )
 
 
