@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bloodaxe"
-version = "0.1.0"
+version = "0.2.0"
 description = "bloodaxe is the nice way to testing and metrifying api flows."
 authors = ["rfunix <rafinha.unix@gmail.com>"]
 readme = "README.md"
@@ -32,6 +32,7 @@ pytest-httpserver = "*"
 pytest-asyncio = "*"
 asynctest = "*"
 pytest-env = "*"
+pytest-clarity = "^0.3.0-alpha.0"
 
 [tool.black]
 line-length = 110

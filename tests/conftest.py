@@ -36,8 +36,15 @@ def toml_data():
                 "method": "POST",
                 "data": {
                     "firstname": "{{ get_user.firstname }} test",
-                    "lastname": "{{ get_user.Lastname }} test",
+                    "lastname": "{{ get_user.lastname}} test",
                     "status": "{{ get_user.status }} test",
+                },
+                "response_check": {
+                    "data": {
+                        "firstname": "{{ get_user.firstname }} test",
+                        "lastname": "{{ get_user.lastname }} test",
+                        "status": "{{ get_user.status }} test",
+                    }
                 },
             },
             {
@@ -46,7 +53,7 @@ def toml_data():
                 "method": "PUT",
                 "data": {
                     "firstname": "{{ get_user.firstname }} testx",
-                    "lastname": "{{ get_user.Lastname }} testx",
+                    "lastname": "{{ get_user.lastname }} testx",
                     "status": "{{ get_user.status }} testx",
                 },
             },
@@ -56,7 +63,7 @@ def toml_data():
                 "method": "PATCH",
                 "data": {
                     "firstname": "{{ get_user.firstname }} testz",
-                    "lastname": "{{ get_user.Lastname }} testz",
+                    "lastname": "{{ get_user.lastname }} testz",
                 },
             },
             {
@@ -120,13 +127,13 @@ def mocked_secho(mocker):
 
 @pytest.fixture
 def get_user_response():
-    return {"name": "Arnfinn", "lastname": "Bjornsson", "status": "active"}
+    return {"firstname": "Arnfinn", "lastname": "Bjornsson", "status": "active"}
 
 
 @pytest.fixture
 def post_user_response(get_user_response):
     return {
-        "name": f"{get_user_response['name']} test",
+        "firstname": f"{get_user_response['firstname']} test",
         "lastname": f"{get_user_response['lastname']} test",
         "status": f"{get_user_response['status']} test",
     }
