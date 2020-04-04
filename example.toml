@@ -58,7 +58,7 @@ Authorization = "{{ get_token.access_token}}"
 [request.response_check] # response_check feature checking response data and status_code
 status_code = 201
 [request.response_check.data]
-firstname = "{{ get_user.firstname }} test" # it's possible using the template syntax in response data checking
+firstname = "{{ get_user.firstname }} test" # templating syntax is allowed in response data checks
 lastname = "{{ get_user.Lastname }} test"
 status = "{{ get_user.status }} test"
 
