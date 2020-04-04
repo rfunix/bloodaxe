@@ -1,5 +1,5 @@
 [configs]
-number_of_concurrent_flows = 10 # Number of concurrents coroutines flows
+number_of_concurrent_flows = 10 # Number of concurrent coroutines flows
 duration = 60 # Stressing duration
 
 [[api]] # Api context
