@@ -28,9 +28,9 @@ FLOW_ERROR = typer.style("FlowError", bg=typer.colors.RED, fg=typer.colors.WHITE
 
 REQUEST_MESSAGE = "Request {}, name={}, url={}"
 START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
-RESPONSE_DATA_CHECK_FAILED_MESSAGE = "Failed to response check, request={}, " "expected data={}, received={}"
+RESPONSE_DATA_CHECK_FAILED_MESSAGE = "Failed to check response, request={}, " "expected data={}, received={}"
 RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE = (
-    "Failed to status_code check, request={}, " "expected status_code={}, received={}"
+    "Status code check failed, request={}, " "expected status_code={}, received={}"
 )
 SECONDS_MASK = "{0:.2f}"
 DEFAULT_TIMEOUT = 10

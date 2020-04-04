@@ -1,11 +1,11 @@
 [configs]
-number_of_concurrent_flows = 10 # Number of concurrents coroutines flows
+number_of_concurrent_flows = 10 # Number of concurrent coroutines flows
 duration = 60 # Stressing duration
 
 [[api]] # Api context
 name = "user_api"
 base_url = "http://127.0.0.1:8080" # Base url at the moment, is the unique parameter in api section.
-[api.envvars] # It's possible, configure envvars for api context
+[api.envvars] # Environment variables for given api
 client_id = "CLIENT_ID" # Envvars names
 client_secret = "CLIENT_SECRET"
 
@@ -18,9 +18,9 @@ name = "get_token"
 url = "{{ user_api.base_url }}/token/" # Use user_api context to get the base_url
 method = "POST"
 timeout = 60 # The bloodaxe default timeout value is 10 secs, but it's possible override the default value
-save_result = true # Save request result in request name context, the value default is False
+save_result = true # Save request result in request name context, default value is false
 [request.data] # Request data section
-client_id = "{{ user_api.client_id }}" # It's possible using the template syntax in request.data
+client_id = "{{ user_api.client_id }}" # templating syntax is allowed in request.data
 client_secret = "{{ user_api.client_secret }}"
 [request.headers] # Request header section
 Content-Type = 'application/x-www-form-urlencoded'
@@ -32,7 +32,7 @@ method = "GET"
 timeout = 60
 save_result = true
 [request.headers]
-Authorization = "{{ get_token.access_token}}" # It's possible using the template syntax in request.headers
+Authorization = "{{ get_token.access_token}}" # templating syntax is allowed in request.headers
 
 [[request]]
 name ="get_user_with_params"
@@ -41,7 +41,7 @@ method = "GET"
 timeout = 60
 save_result = false
 [request.params] # Request params section
-name = "{{ get_user.name }}" # it's possible using the template syntax in request.params/querystring
+name = "{{ get_user.name }}" # templating syntax is allowed in request.params/querystring
 [request.headers]
 Authorization = "{{ get_token.access_token}}"
 
@@ -58,7 +58,7 @@ Authorization = "{{ get_token.access_token}}"
 [request.response_check] # response_check feature checking response data and status_code
 status_code = 201
 [request.response_check.data]
-firstname = "{{ get_user.firstname }} test" # it's possible using the template syntax in response data checking
+firstname = "{{ get_user.firstname }} test" # templating syntax is allowed in response data checks
 lastname = "{{ get_user.Lastname }} test"
 status = "{{ get_user.status }} test"
 
