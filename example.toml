@@ -32,7 +32,7 @@ method = "GET"
 timeout = 60
 save_result = true
 [request.headers]
-Authorization = "{{ get_token.access_token}}" # It's possible using the template syntax in request.headers
+Authorization = "{{ get_token.access_token}}" # templating syntax is allowed in request.headers
 
 [[request]]
 name ="get_user_with_params"
