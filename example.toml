@@ -41,7 +41,7 @@ method = "GET"
 timeout = 60
 save_result = false
 [request.params] # Request params section
-name = "{{ get_user.name }}" # it's possible using the template syntax in request.params/querystring
+name = "{{ get_user.name }}" # templating syntax is allowed in request.params/querystring
 [request.headers]
 Authorization = "{{ get_token.access_token}}"
 
