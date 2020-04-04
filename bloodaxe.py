@@ -99,7 +99,7 @@ async def make_delete_request(url, timeout, params=None, headers=None, *args, **
 async def make_put_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.put(url, data=data, timeout=timeout, headers=headers)
+            resp = await client.put(url, json=data, timeout=timeout, headers=headers)
             resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_put_request, exc={exc}")
@@ -110,7 +110,7 @@ async def make_put_request(url, data, timeout, headers=None, *args, **kwargs):
 async def make_patch_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.patch(url, data=data, timeout=timeout, headers=headers)
+            resp = await client.patch(url, json=data, timeout=timeout, headers=headers)
             resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_patch_request, exc={exc}")
@@ -121,7 +121,7 @@ async def make_patch_request(url, data, timeout, headers=None, *args, **kwargs):
 async def make_post_request(url, data, timeout, headers=None, *args, **kwargs):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(url, data=data, timeout=timeout, headers=headers)
+            resp = await client.post(url, json=data, timeout=timeout, headers=headers)
             resp.raise_for_status()
     except HTTP_EXCEPTIONS as exc:
         raise FlowError(f"An error occurred when make_post_request, exc={exc}")
