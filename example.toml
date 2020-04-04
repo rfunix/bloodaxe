@@ -18,7 +18,7 @@ name = "get_token"
 url = "{{ user_api.base_url }}/token/" # Use user_api context to get the base_url
 method = "POST"
 timeout = 60 # The bloodaxe default timeout value is 10 secs, but it's possible override the default value
-save_result = true # Save request result in request name context, the value default is False
+save_result = true # Save request result in request name context, default value is false
 [request.data] # Request data section
 client_id = "{{ user_api.client_id }}" # It's possible using the template syntax in request.data
 client_secret = "{{ user_api.client_secret }}"
