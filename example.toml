@@ -5,7 +5,7 @@ duration = 60 # Stressing duration
 [[api]] # Api context
 name = "user_api"
 base_url = "http://127.0.0.1:8080" # Base url at the moment, is the unique parameter in api section.
-[api.envvars] # It's possible, configure envvars for api context
+[api.envvars] # Environment variables for given api
 client_id = "CLIENT_ID" # Envvars names
 client_secret = "CLIENT_SECRET"
 
