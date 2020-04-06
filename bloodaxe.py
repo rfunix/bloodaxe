@@ -24,9 +24,10 @@ HTTP_METHODS_FUNC_MAPPING = {
 
 SUCCESS = typer.style("success", fg=typer.colors.GREEN, bold=True)
 ERROR = typer.style("error", fg=typer.colors.RED, bold=True)
-FLOW_ERROR = typer.style("FlowError", bg=typer.colors.RED, fg=typer.colors.WHITE, bold=True)
+FLOW_ERROR = typer.style("FLOW_ERROR", bg=typer.colors.RED, fg=typer.colors.WHITE, bold=True)
+REQUEST_INFO = typer.style("REQUEST_INFO", bg=typer.colors.GREEN, fg=typer.colors.BLACK, bold=True)
 
-REQUEST_MESSAGE = "Request {}, name={}, url={}"
+REQUEST_MESSAGE = "Request {}: name={}, url={}"
 START_MESSAGE = "Start bloodaxe, number_of_concurrent_flows={}, duration={} seconds"
 RESPONSE_DATA_CHECK_FAILED_MESSAGE = "Failed to check response, request={}, " "expected data={}, received={}"
 RESPONSE_STATUS_CODE_CHECK_FAILED_MESSAGE = (
@@ -252,6 +253,8 @@ async def run_flow(toml_data, verbose):
         try:
             result = await make_request(context, **request)
             show_request_message(SUCCESS, request["name"], request["url"])
+            if verbose:
+                typer.secho(f"{REQUEST_INFO}: request_name={request['name']}, response={result}")
         except FlowError as exc:
             show_request_message(ERROR, request["name"], request["url"])
             current_flow.error = exc
