@@ -299,6 +299,21 @@ async def test_start(
     mock_show_metrics.assert_called()
 
 
+@pytest.mark.asyncio
+async def test_start_with_verbose(
+    mocker, httpserver, toml_data, mocked_echo, mocked_secho, get_user_response, post_user_response
+):
+    mock_show_metrics = mocker.patch("bloodaxe.show_metrics")
+    httpserver.expect_request("/users/1", method="GET").respond_with_json(get_user_response)
+    httpserver.expect_request("/users/", method="POST").respond_with_json(post_user_response)
+    toml_data["api"][0]["base_url"] = f"http://{httpserver.host}:{httpserver.port}"
+
+    await start(toml_data, verbose=True)
+
+    mock_show_metrics.assert_called()
+    assert mocked_secho.called
+
+
 def test_main(mocker, toml_data):
     mocked_start = mocker.patch("bloodaxe.start")
     mocked_toml_load = mocker.patch("bloodaxe.toml.load")
