@@ -14,6 +14,7 @@
 Usage: bloodaxe.py [OPTIONS] CONFIG_FILE
 
 Options:
+  --verbose / --no-verbose
   --install-completion  Install completion for the current shell.
   --show-completion     Show completion for the current shell, to copy it or
                         customize the installation.
