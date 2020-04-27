@@ -8,10 +8,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
+import matplotlib.pyplot as plt
+import mplcyberpunk
+import numpy as np
 import toml
 import typer
 from httpx._exceptions import ConnectTimeout, HTTPError, NetworkError, ReadTimeout
 from jinja2 import Template
+from matplotlib.ticker import PercentFormatter
 from tabulate import tabulate
 
 HTTP_METHODS_FUNC_MAPPING = {
@@ -47,6 +51,7 @@ TABLE_HEADERS = [
 
 HTTP_EXCEPTIONS = (HTTPError, NetworkError, ReadTimeout, ConnectTimeout)
 
+plt.style.use("cyberpunk")
 app = typer.Typer()
 
 
@@ -271,7 +276,23 @@ async def run_flow(toml_data, verbose):
     return current_flow
 
 
-async def start(toml_data, verbose):
+def render_plots(flows):
+    x = [flow.duration for flow in flows if flow.success]
+
+    plt.hist(x, weights=np.ones(len(x)) / len(x), stacked=True)
+    plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
+    plt.title("Flows duration histogram")
+    plt.xlabel("Duration")
+    plt.ylabel("Flow quantity %")
+    plt.grid(True)
+
+    mplcyberpunk.add_glow_effects()
+
+    plt.show()
+    plt.savefig("flows_plot.png")
+
+
+async def start(toml_data, verbose, plot):
     flows = tuple()
     duration = toml_data["configs"]["duration"]
     number_of_concurrent_flows = toml_data["configs"]["number_of_concurrent_flows"]
@@ -298,15 +319,18 @@ async def start(toml_data, verbose):
 
     show_metrics(flows, elapsed_seconds)
 
+    if plot:
+        render_plots(flows)
+
 
 @app.command()
-def main(flow_config_file: Path, verbose: bool = False):
+def main(flow_config_file: Path, verbose: bool = False, plot: bool = False):
     try:
         toml_data = toml.load(flow_config_file)
     except (TypeError, toml.TomlDecodeError):
         typer.echo("Invalid toml file")
     else:
-        asyncio.run(start(toml_data, verbose))
+        asyncio.run(start(toml_data, verbose, plot))
 
 
 if __name__ == "__main__":
